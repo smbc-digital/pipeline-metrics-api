@@ -2,17 +2,21 @@ package main
 
 import (
 	"net/http"
-	"fmt"
 	"log"
 	"os"
 	"encoding/json"
 	"io/ioutil"
+	"path"
+	"strconv"
+	"strings"
+	"fmt"
 )
 
 type Application struct {
-	Id int
-	Name string
+	Id int `json:"id"`
+	Name string `json:"name"`
 	TeamCityId string `json:",omitempty"`
+	BuildTypeId string `json:",omitempty"`
 }
 
 type ApplicationsList struct {
@@ -33,14 +37,45 @@ func initConfig() (ApplicationsList, error) {
 	return applications, nil
 }
 
-func (applications *ApplicationsList) get(w http.ResponseWriter, r *http.Request) {
+func (applications *ApplicationsList) getAll(w http.ResponseWriter, r *http.Request) {
 	var list = *applications
 
 	for i, _ := range list.Applications {
 		list.Applications[i].TeamCityId = ""
+		list.Applications[i].BuildTypeId = ""
 	}
 
 	json.NewEncoder(w).Encode(list)
+}
+
+func (applications *ApplicationsList) getOne(w http.ResponseWriter, r *http.Request) {
+	applicationId, _ := strconv.Atoi(path.Base(r.URL.Path))
+	var application *Application
+
+	for _, app := range applications.Applications {
+		if app.Id == applicationId {
+			application = &app
+			break
+		}
+	}
+
+	if application == nil {
+		json.NewEncoder(w).Encode("Application with this ID doesn't exist.")
+		return
+	}
+
+	requestUrl := strings.Join([]string{ "http://pipelines.stockport.gov.uk:1980/httpAuth/app/rest/builds?locator=project:", application.TeamCityId, ",buildType:", application.BuildTypeId, "&fields=build(id,number,status,startDate)"}, "")
+	
+	client := &http.Client{}
+
+	request, _ := http.NewRequest("GET", requestUrl, nil)
+	request.Header.Add("Authorization", "not a cookie")
+
+	resp, _ := client.Do(request)
+
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(body)
 }
 
 func main() {
@@ -50,9 +85,8 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(applications)
-
-	http.HandleFunc("/applications", applications.get)
+	http.HandleFunc("/applications", applications.getAll)
+	http.HandleFunc("/applications/", applications.getOne)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
