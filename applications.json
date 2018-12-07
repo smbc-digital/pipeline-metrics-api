@@ -1,0 +1,22 @@
+[
+    {
+        "id" : 1,
+        "name" : "DTS-Frontend",
+        "teamCityId" : "someId"
+    },
+    {
+        "id" : 2,
+        "name" : "DTS-Inthub",
+        "teamCityId" : "someId"
+    },
+    {
+        "id" : 3,
+        "name" : "IAG-WebApp",
+        "teamCityId" : "someId"
+    },
+    {
+        "id" : 4,
+        "name" : "IAG-ContentAPI",
+        "teamCityId" : "someId"
+    }
+]
