@@ -9,7 +9,9 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 	"fmt"
+	"flag"
 )
 
 type Application struct {
@@ -17,16 +19,27 @@ type Application struct {
 	Name string `json:"name"`
 	TeamCityId string `json:",omitempty"`
 	BuildTypeId string `json:",omitempty"`
+	LastPublish string `json:"lastPublish,omitempty"`
+	NumberOfBuilds int `json:"numberOfBuilds,omitempty"`
 }
 
 type ApplicationsList struct {
 	Applications []Application
 }
 
+type Build struct {
+	BuildList []struct {
+		ID        int    `json:"id"`
+		Number    string `json:"number"`
+		Status    string `json:"status"`
+		StartDate string `json:"startDate"`
+	} `json:"build"`
+}
+
 func initConfig() (ApplicationsList, error) {
 	var applications ApplicationsList
 
-	applicationsConfig, err := os.Open("applications.json")
+	applicationsConfig, err := os.Open("config/supported-pipelines.json")
 	if err != nil {
 		return applications, err
 	}
@@ -64,22 +77,50 @@ func (applications *ApplicationsList) getOne(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	requestUrl := strings.Join([]string{ "http://pipelines.stockport.gov.uk:1980/httpAuth/app/rest/builds?locator=project:", application.TeamCityId, ",buildType:", application.BuildTypeId, "&fields=build(id,number,status,startDate)"}, "")
+	var startDate = time.Now().AddDate(0, 0, -28).Format("20060102T150405")
+
+	response := doRequest(application.TeamCityId, application.BuildTypeId, startDate)
 	
+	var build Build
+	err := json.Unmarshal(response, &build)
+
+	if err != nil {
+		panic(err)
+	}
+
+	parseApplications(application, build)
+
+	json.NewEncoder(w).Encode(application)
+}
+
+func parseApplications(application *Application, build Build){
+	application.LastPublish = build.BuildList[0].StartDate
+	application.NumberOfBuilds = len(build.BuildList)
+}
+
+func doRequest(teamCityId, buildTypeId, startDate string) []byte{
+	requestUrl := strings.Join([]string{ "http://pipelines.stockport.gov.uk:1980/httpAuth/app/rest/builds?locator=project:", teamCityId, ",buildType:", buildTypeId,",sinceDate:", startDate, "%2B0000", "&fields=build(id,number,status,startDate)"}, "")
 	client := &http.Client{}
-
+	
 	request, _ := http.NewRequest("GET", requestUrl, nil)
-	request.Header.Add("Authorization", "not a cookie")
-
+	request.Header.Add("Accept", "application/json")
+	request.SetBasicAuth(os.Getenv("TeamCityUsername"),os.Getenv("TeamCityPassword"))
+	
 	resp, _ := client.Do(request)
-
+	
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(body)
+	bytes, _ := ioutil.ReadAll(resp.Body)
+	return bytes
 }
 
 func main() {
 	applications, err := initConfig()
+	developmentMode := flag.Bool("dev", false, "Set to true if you do not have direct access to TeamCity")
+	flag.Parse()
+
+	if *developmentMode == true {
+		fmt.Println("You are a developer!")
+	}
 
 	if err != nil {
 		panic(err)
@@ -88,5 +129,6 @@ func main() {
 	http.HandleFunc("/applications", applications.getAll)
 	http.HandleFunc("/applications/", applications.getOne)
 
+	fmt.Println("Now listening on port :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
