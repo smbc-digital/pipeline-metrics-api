@@ -14,6 +14,8 @@ import (
 	"flag"
 )
 
+var developerMode *bool
+
 type Application struct {
 	Id int `json:"id"`
 	Name string `json:"name"`
@@ -99,6 +101,11 @@ func parseApplications(application *Application, build Build){
 }
 
 func doRequest(teamCityId, buildTypeId, startDate string) []byte{
+	if *developerMode {
+		lan, _ := ioutil.ReadFile("config/development-data.json")
+		return lan
+	}
+
 	requestUrl := strings.Join([]string{ "http://pipelines.stockport.gov.uk:1980/httpAuth/app/rest/builds?locator=project:", teamCityId, ",buildType:", buildTypeId,",sinceDate:", startDate, "%2B0000", "&fields=build(id,number,status,startDate)"}, "")
 	client := &http.Client{}
 	
@@ -107,18 +114,18 @@ func doRequest(teamCityId, buildTypeId, startDate string) []byte{
 	request.SetBasicAuth(os.Getenv("TeamCityUsername"),os.Getenv("TeamCityPassword"))
 	
 	resp, _ := client.Do(request)
-	
 	defer resp.Body.Close()
+	
 	bytes, _ := ioutil.ReadAll(resp.Body)
 	return bytes
 }
 
 func main() {
 	applications, err := initConfig()
-	developmentMode := flag.Bool("dev", false, "Set to true if you do not have direct access to TeamCity")
+	developerMode = flag.Bool("dev", false, "Set to true if you do not have direct access to TeamCity")
 	flag.Parse()
 
-	if *developmentMode == true {
+	if *developerMode == true {
 		fmt.Println("You are a developer!")
 	}
 
