@@ -31,8 +31,9 @@ func getApplication(w http.ResponseWriter, r *http.Request) {
 	ID, _ := strconv.Atoi(path.Base(r.URL.Path))
 	application, err := applications.GetApplication(ID)
 
+	fmt.Println(err)
 	if err != nil {
-		json.NewEncoder(w).Encode(err)
+		json.NewEncoder(w).Encode(err.Error())
 		return
 	}
 
