@@ -40,7 +40,12 @@ func getApplication(w http.ResponseWriter, r *http.Request) {
 	var startDate = time.Now().AddDate(0, 0, -28).Format("20060102T150405")
 
 	if !*developerMode {
-		parseApplications(application, builds.GetBuilds(application.TeamCityID, application.BuildTypeID, startDate))
+		builds, err := builds.GetBuilds(application.TeamCityID, application.BuildTypeID, startDate)
+		if err != nil {
+			json.NewEncoder(w).Encode(err.Error())
+			return
+		}
+		parseApplications(application, builds)
 	} else {
 		parseApplications(application, builds.GetDevelopmentBuilds())
 	}

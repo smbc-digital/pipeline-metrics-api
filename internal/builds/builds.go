@@ -3,9 +3,10 @@ package builds
 import (
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
+
+	"github.com/pipeline-metrics-api/internal/httpwrapper"
 )
 
 //Builds represents the build log for a single project in TeamCity
@@ -19,7 +20,7 @@ type Builds struct {
 }
 
 //GetBuilds calls the TeamCityAPI and returns the parsed response
-func GetBuilds(teamCityID, buildTypeID, startDate string) Builds {
+func GetBuilds(teamCityID, buildTypeID, startDate string) (Builds, error) {
 	requestURL := strings.Join([]string{
 		"http://pipelines.stockport.gov.uk:1980/httpAuth/app/rest/builds?locator=project:",
 		teamCityID,
@@ -30,29 +31,21 @@ func GetBuilds(teamCityID, buildTypeID, startDate string) Builds {
 		"%2B0000",
 		"&fields=build(id,number,status,startDate)"}, "")
 
-	return parseResponse(makeRequest(requestURL))
+	headers := []httpwrapper.Header{
+		httpwrapper.Header{
+			Name:  "Accept",
+			Value: "application/json"},
+		httpwrapper.GenerateAuthenticationHeader(os.Getenv("TeamCityUsername"), os.Getenv("TeamCityPassword")),
+	}
+
+	response, err := httpwrapper.Get(requestURL, &headers)
+	return parseResponse(response), err
 }
 
 //GetDevelopmentBuilds returns the parsed development data for use when there is no access to TeamCity
 func GetDevelopmentBuilds() Builds {
 	response, _ := ioutil.ReadFile("config/development-data.json")
 	return parseResponse(response)
-}
-
-func makeRequest(url string) []byte {
-	client := &http.Client{}
-	request, _ := http.NewRequest("GET", url, nil)
-
-	request.Header.Add("Accept", "application/json")
-	request.SetBasicAuth(os.Getenv("TeamCityUsername"), os.Getenv("TeamCityPassword"))
-
-	response, _ := client.Do(request)
-
-	defer response.Body.Close()
-
-	byteResponse, _ := ioutil.ReadAll(response.Body)
-
-	return byteResponse
 }
 
 func parseResponse(response []byte) Builds {
