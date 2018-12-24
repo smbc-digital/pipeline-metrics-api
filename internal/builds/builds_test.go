@@ -37,7 +37,7 @@ func TestGetDevelopmentBuilds(t *testing.T) {
 
 func TestGetBuilds(t *testing.T) {
 	mockGet := func(url string, headers *[]httpwrapper.Header) ([]byte, error) {
-		byteArray := []byte("{ \"build\": [ { \"id\": 232010, \"number\": \"AWS(315).FE(1.2.3660)\", \"status\": \"SUCCESS\", \"startDate\": \"20181220T111046+0000\" }, { \"id\": 230771, \"number\": \"AWS(312).FE(1.2.3596)\", \"status\": \"SUCCESS\", \"startDate\": \"20181212T155611+0000\" }, { \"id\": 230218, \"number\": \"AWS(312).FE(1.2.3582)\", \"status\": \"SUCCESS\", \"startDate\": \"20181210T103318+0000\" }, { \"id\": 228359, \"number\": \"AWS(303).FE(1.2.3549)\", \"status\": \"SUCCESS\", \"startDate\": \"20181127T141427+0000\" } ] }")
+		byteArray := []byte("{ \"build\": [ { \"id\": 1001, \"number\": \"build_number_1001\", \"status\": \"test_status\", \"startDate\": \"2018_01_04\" }, { \"id\": 1002, \"number\": \"build_number_1002\", \"status\": \"test_status\", \"startDate\": \"2018_01_03\" }, { \"id\": 1003, \"number\": \"build_number_1003\", \"status\": \"test_status\", \"startDate\": \"2018_01_02\" }, { \"id\": 1004, \"number\": \"build_number_1004\", \"status\": \"test_status\", \"startDate\": \"2018_01_01\" } ] }")
 		return byteArray, nil
 	}
 	get = mockGet
@@ -45,10 +45,10 @@ func TestGetBuilds(t *testing.T) {
 	result, _ := GetBuilds("test", "test", "test")
 
 	fmt.Println(result.BuildList[0])
-	if result.BuildList[0].ID != 232010 ||
-		result.BuildList[0].Number != "AWS(315).FE(1.2.3660)" ||
-		result.BuildList[0].StartDate != "20181220T111046+0000" ||
-		result.BuildList[0].Status != "SUCCESS" ||
+	if result.BuildList[0].ID != 1001 ||
+		result.BuildList[0].Number != "build_number_1001" ||
+		result.BuildList[0].StartDate != "2018_01_04" ||
+		result.BuildList[0].Status != "test_status" ||
 		len(result.BuildList) != 4 {
 		t.Error("Incorrent data returned")
 	}
