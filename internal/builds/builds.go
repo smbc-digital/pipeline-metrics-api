@@ -19,6 +19,9 @@ type Builds struct {
 	} `json:"build"`
 }
 
+var readFile = ioutil.ReadFile
+var get = httpwrapper.Get
+
 //GetBuilds calls the TeamCityAPI and returns the parsed response
 func GetBuilds(teamCityID, buildTypeID, startDate string) (Builds, error) {
 	requestURL := strings.Join([]string{
@@ -38,13 +41,13 @@ func GetBuilds(teamCityID, buildTypeID, startDate string) (Builds, error) {
 		httpwrapper.GenerateAuthenticationHeader(os.Getenv("TeamCityUsername"), os.Getenv("TeamCityPassword")),
 	}
 
-	response, err := httpwrapper.Get(requestURL, &headers)
+	response, err := get(requestURL, &headers)
 	return parseResponse(response), err
 }
 
 //GetDevelopmentBuilds returns the parsed development data for use when there is no access to TeamCity
 func GetDevelopmentBuilds() Builds {
-	response, _ := ioutil.ReadFile("config/development-data.json")
+	response, _ := readFile("config/development-data.json")
 	return parseResponse(response)
 }
 
