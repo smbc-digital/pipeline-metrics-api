@@ -13,7 +13,7 @@ type Header struct {
 	Value string
 }
 
-var client = &http.Client{}
+var makeRequest = (&http.Client{}).Do
 
 //GenerateAuthenticationHeader returns a Basic Authentication Header
 //with passed in username and password
@@ -35,7 +35,7 @@ func Get(url string, headers *[]Header) ([]byte, error) {
 		}
 	}
 
-	response, err := client.Do(request)
+	response, err := makeRequest(request)
 
 	if err != nil {
 		return nil, errors.New("Http response recieved indicates an error has occured")
