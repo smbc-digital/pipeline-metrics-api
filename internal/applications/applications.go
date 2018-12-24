@@ -23,6 +23,9 @@ type Application struct {
 	NumberOfBuilds int    `json:"numberOfBuilds,omitempty"`
 }
 
+var osGetwd = os.Getwd
+var ioutilReadFile = ioutil.ReadFile
+
 //New creates a new instance of Application with the specifed parameters
 func New(name, teamCityID, buildTypeID, lastPublish string, numberOfBuilds, id int) Application {
 	app := Application{
@@ -40,8 +43,8 @@ func New(name, teamCityID, buildTypeID, lastPublish string, numberOfBuilds, id i
 func GetSupportedPipelines() (List, error) {
 	var list List
 
-	pwd, _ := os.Getwd()
-	byteValue, _ := ioutil.ReadFile(pwd + "/config/supported-pipelines.json")
+	pwd, _ := osGetwd()
+	byteValue, _ := ioutilReadFile(pwd + "/config/supported-pipelines.json")
 
 	json.Unmarshal(byteValue, &list.Application)
 
