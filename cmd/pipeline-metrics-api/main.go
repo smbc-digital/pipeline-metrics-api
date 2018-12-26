@@ -14,14 +14,19 @@ import (
 	"github.com/pipeline-metrics-api/internal/builds"
 )
 
-var developerMode *bool
+var developerMode = false
+var getSupportedPipelines = applications.GetSupportedPipelines
+var getApplicationWithID = applications.GetApplication
+var getBuilds = builds.GetBuilds
+var getDevelopmentBuilds = builds.GetDevelopmentBuilds
 
 func getApplications(w http.ResponseWriter, r *http.Request) {
-	list, _ := applications.GetSupportedPipelines()
+	list, _ := getSupportedPipelines()
 
 	for i := range list.Application {
 		list.Application[i].TeamCityID = ""
 		list.Application[i].BuildTypeID = ""
+		list.Application[i].NumberOfBuilds = 0
 	}
 
 	json.NewEncoder(w).Encode(list)
@@ -29,9 +34,9 @@ func getApplications(w http.ResponseWriter, r *http.Request) {
 
 func getApplication(w http.ResponseWriter, r *http.Request) {
 	ID, _ := strconv.Atoi(path.Base(r.URL.Path))
-	application, err := applications.GetApplication(ID)
 
-	fmt.Println(err)
+	application, err := getApplicationWithID(ID)
+
 	if err != nil {
 		json.NewEncoder(w).Encode(err.Error())
 		return
@@ -39,15 +44,16 @@ func getApplication(w http.ResponseWriter, r *http.Request) {
 
 	var startDate = time.Now().AddDate(0, 0, -28).Format("20060102T150405")
 
-	if !*developerMode {
-		builds, err := builds.GetBuilds(application.TeamCityID, application.BuildTypeID, startDate)
+	if !developerMode {
+		builds, err := getBuilds(application.TeamCityID, application.BuildTypeID, startDate)
+
 		if err != nil {
 			json.NewEncoder(w).Encode(err.Error())
 			return
 		}
 		parseApplications(application, builds)
 	} else {
-		parseApplications(application, builds.GetDevelopmentBuilds())
+		parseApplications(application, getDevelopmentBuilds())
 	}
 
 	json.NewEncoder(w).Encode(application)
@@ -59,7 +65,7 @@ func parseApplications(application *applications.Application, build builds.Build
 }
 
 func main() {
-	developerMode = flag.Bool("dev", false, "Set to true if you do not have direct access to TeamCity")
+	developerMode = *flag.Bool("dev", false, "Set to true if you do not have direct access to TeamCity")
 	flag.Parse()
 
 	http.HandleFunc("/applications", getApplications)
