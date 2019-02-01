@@ -47,7 +47,8 @@ func GetBuilds(teamCityID, buildTypeID, startDate string) (Builds, error) {
 
 //GetDevelopmentBuilds returns the parsed development data for use when there is no access to TeamCity
 func GetDevelopmentBuilds() Builds {
-	response, _ := readFile("config/development-data.json")
+	pwd, _ := os.Getwd()
+	response, _ := readFile(pwd + "/config/development-data.json")
 	return parseResponse(response)
 }
 

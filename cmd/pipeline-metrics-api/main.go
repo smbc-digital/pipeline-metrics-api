@@ -21,6 +21,7 @@ var getBuilds = builds.GetBuilds
 var getDevelopmentBuilds = builds.GetDevelopmentBuilds
 
 func getApplications(w http.ResponseWriter, r *http.Request) {
+	(w).Header().Set("Access-Control-Allow-Origin", "*")
 	list, _ := getSupportedPipelines()
 
 	for i := range list.Application {
@@ -33,6 +34,7 @@ func getApplications(w http.ResponseWriter, r *http.Request) {
 }
 
 func getApplication(w http.ResponseWriter, r *http.Request) {
+	(w).Header().Set("Access-Control-Allow-Origin", "*")
 	ID, _ := strconv.Atoi(path.Base(r.URL.Path))
 
 	application, err := getApplicationWithID(ID)
@@ -60,17 +62,27 @@ func getApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseApplications(application *applications.Application, build builds.Builds) {
-	application.LastPublish = build.BuildList[0].StartDate
+	layout := "20060102T150405+0000"
+	parsedLastPublish, err := time.Parse(layout, build.BuildList[0].StartDate)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(parsedLastPublish)
+
+	application.LastPublish = parsedLastPublish.String()
 	application.NumberOfBuilds = len(build.BuildList)
 }
 
 func main() {
-	developerMode = *flag.Bool("dev", false, "Set to true if you do not have direct access to TeamCity")
+	var developerModeFlag = flag.Bool("dev", false, "Set to true if you do not have direct access to TeamCity")
 	flag.Parse()
 
+	developerMode = *developerModeFlag
 	http.HandleFunc("/applications", getApplications)
 	http.HandleFunc("/applications/", getApplication)
 
-	fmt.Println("Now listening on port http//localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Now listening on port http//localhost:4040")
+	log.Fatal(http.ListenAndServe(":4040", nil))
 }
